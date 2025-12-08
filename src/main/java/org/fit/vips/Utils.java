@@ -3,9 +3,9 @@ package org.fit.vips;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
+import java.io.InputStream;
 import java.io.PrintStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -175,25 +175,22 @@ public class Utils {
 	}
 
 	public static void generateEvincedScript(Document htmlDoc, String fileName) {
-		PrintStream out = null;
-		try {
-			System.out.println("WRITING DATA");
+		// Load script template from classpath resources
+		try (InputStream is = Utils.class.getResourceAsStream("/evinced-mark-VIPS-blocks.js");
+				PrintStream out = new PrintStream(new FileOutputStream(fileName))) {
+			if (is == null) {
+				throw new RuntimeException("Resource not found: /evinced-mark-VIPS-blocks.js");
+			}
 			Set<String> evincedIds = new HashSet<>();
 			extractAllEvincedIds(htmlDoc.getDocumentElement(), evincedIds);
 			String evincedIdsStr = String.join(";", evincedIds);
-			String evincedScript = Files.readString(Paths.get("src/main/resources/evinced-mark-VIPS-blocks.js"));
+			String evincedScript = new String(is.readAllBytes(), StandardCharsets.UTF_8);
 			evincedScript = evincedScript.replace("<put-blocks-ids-here>", evincedIdsStr);
-			System.out.println("STR = " + evincedScript);
-			out = new PrintStream(new FileOutputStream(fileName));
 			out.print(evincedScript);
 		} catch (Exception e) {
 			System.err.println("Error: " + e.getMessage());
 			e.printStackTrace();
 			throw new RuntimeException(e);
-		} finally {
-			if (out != null) {
-				out.close();
-			}
 		}
 	}
 }
